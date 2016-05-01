@@ -3,15 +3,9 @@ package fakeit
 import scala.language.experimental.macros
 import scala.reflect.macros.blackbox
 
-trait Faker[T] {
-  def getNext: T
-}
+object FakerMacro {
 
-object FakeIt {
-
-  def fake[T](args: (T => (Any, Any))*):T = macro fakeImpl[T]
-
-  def fakeImpl[T:c.WeakTypeTag](c: blackbox.Context)(args: c.Tree*) = {
+  def fake[T:c.WeakTypeTag](c: blackbox.Context)(args: c.Tree*) = {
     import c.universe._
     val t = implicitly[WeakTypeTag[T]].tpe
     val caseClassName = getCaseClassTermName(c)(t)
@@ -34,15 +28,13 @@ object FakeIt {
                | Implicit for type ${fakerTypeTag.tpe.toString} missing. You should import an implicit for
                | type ${fakerTypeTag.tpe.toString} or override it with fake[$t](_.$name -> <your code>)
               """)
-            case faker => q"$faker.getNext"
+            case faker => q"$faker.next"
           }
         }
         overrideFakers.getOrElse(name.asInstanceOf[c.TermName], getImplicitFakerForType)
     }
 
-    q"""
-        $caseClassName(..$fakedProps)
-     """
+    q"$caseClassName(..$fakedProps)"
   }
 
   private def fakerType[T](c: blackbox.Context)(implicit t: c.WeakTypeTag[T]) = c.weakTypeTag[Faker[T]]

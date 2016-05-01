@@ -1,8 +1,7 @@
 package fakeit
 
 import scala.language.experimental.macros
-import scala.util.Random
-import scala.reflect.macros.whitebox.Context
+import scala.reflect.macros.blackbox
 
 trait Faker[T] {
   def getNext: T
@@ -10,17 +9,9 @@ trait Faker[T] {
 
 object FakeIt {
 
-  implicit val intFaker: Faker[Int] =  new Faker[Int] {
-    override def getNext = Random.nextInt
-  }
-
-  implicit val stringFaker: Faker[String] =  new Faker[String] {
-    override def getNext = Random.nextString(10)
-  }
-
   def fake[T](args: (T => (Any, Any))*):T = macro fakeImpl[T]
 
-  def fakeImpl[T:c.WeakTypeTag](c: Context)(args: c.Tree*) = {
+  def fakeImpl[T:c.WeakTypeTag](c: blackbox.Context)(args: c.Tree*) = {
     import c.universe._
     val t = implicitly[WeakTypeTag[T]].tpe
     val caseClassName = getCaseClassTermName(c)(t)
@@ -36,8 +27,15 @@ object FakeIt {
       case (name, fieldTpe: c.Type) =>
         lazy val getImplicitFakerForType = {
           val fakerTypeTag = fakerType(c)(c.WeakTypeTag(fieldTpe))
-          val faker = c.inferImplicitValue(fakerTypeTag.tpe.asInstanceOf[c.Type])
-          q"$faker.getNext"
+          val fakerOpt = c.inferImplicitValue(fakerTypeTag.tpe.asInstanceOf[c.Type])
+          fakerOpt match {
+            case EmptyTree => c.abort(c.enclosingPosition,
+              s"""
+               | Implicit for type ${fakerTypeTag.tpe.toString} missing. You should import an implicit for
+               | type ${fakerTypeTag.tpe.toString} or override it with fake[$t](_.$name -> <your code>)
+              """)
+            case faker => q"$faker.getNext"
+          }
         }
         overrideFakers.getOrElse(name.asInstanceOf[c.TermName], getImplicitFakerForType)
     }
@@ -47,15 +45,14 @@ object FakeIt {
      """
   }
 
-  private def fakerType[T](c: Context)(implicit t: c.WeakTypeTag[T]) = c.weakTypeTag[Faker[T]]
+  private def fakerType[T](c: blackbox.Context)(implicit t: c.WeakTypeTag[T]) = c.weakTypeTag[Faker[T]]
 
-  private def getCaseClassTermName(c:Context)(t:c.Type) = {
-    import c.universe._
-    val caseClass = t.asInstanceOf[TypeRef].sym.asClass
+  private def getCaseClassTermName(c:blackbox.Context)(t:c.Type) = {
+    val caseClass = t.asInstanceOf[c.universe.TypeRef].sym.asClass
     caseClass.name.toTermName
   }
 
-  private def getFields(c: Context)(tpe: c.Type) = {
+  private def getFields(c: blackbox.Context)(tpe: c.Type) = {
     import c.universe._
     object CaseField {
       def unapply(termSymbol: c.universe.TermSymbol): Option[(c.universe.TermName, c.Type)] = {
@@ -67,8 +64,8 @@ object FakeIt {
       }
     }
     tpe.decls.collect {
-      case CaseField(termName,tpe) =>
-        (termName, tpe)
+      case CaseField(termName,fieldTpe) =>
+        (termName, fieldTpe)
     }
   }
 }

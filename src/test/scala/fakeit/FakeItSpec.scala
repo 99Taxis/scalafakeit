@@ -9,7 +9,7 @@ import fakeit.ImplicitFakers._
 class FakeItSpec extends FreeSpec with MustMatchers {
 
   case class Person(name: String, age:Int)
-  "FakeIt" - {
+  "fake" - {
     "simple" in {
       val person = fake[Person]()
       person.name must not be ""
@@ -23,7 +23,7 @@ class FakeItSpec extends FreeSpec with MustMatchers {
     }
 
     "own string faker" in {
-      val person = fake[Person](_.name -> ("fakedName" + Random.nextString(10)))
+      val person = fake[Person](_.name -> ("fakedName" + next[String]))
       person.name must startWith ("fakedName")
       person.age must not be 0
     }
@@ -39,7 +39,7 @@ class FakeItSpec extends FreeSpec with MustMatchers {
       type MyType = Long with MyTrait
       case class Test(name: String, whatever: MyType)
       implicit val myTypeFaker: Faker[MyType] = new Faker[MyType] {
-        override def next: MyType = Random.nextLong().asInstanceOf[MyType]
+        override def getNext: MyType = next[Long].asInstanceOf[MyType]
       }
       val test = fake[Test]()
       test.whatever must not be 0L
@@ -47,14 +47,14 @@ class FakeItSpec extends FreeSpec with MustMatchers {
 
     "type mismatch" in {
       """
-        fake[Person](, _.age -> "test")
+        fake[Person](_.age -> "test")
       """ mustNot compile
     }
 
     "unknown faker implicit" in {
       case class Test(name: String, whatever: StringBuilder)
       """
-        | fake[Test]()
+        fake[Test]()
       """ mustNot compile
     }
 
@@ -68,17 +68,47 @@ class FakeItSpec extends FreeSpec with MustMatchers {
     "nested case classes" in {
       case class Parent(name: String, child: Person)
       implicit val personFaker: Faker[Person] = new Faker[Person] {
-        override def next: Person = fake[Person]()
+        override def getNext: Person = fake[Person]()
       }
       val parent = fake[Parent]()
       parent must not be ""
     }
-  }
-  "OptionFaker" - {
-    "simple" in {
+
+    "non case class should not compile" in {
+      class Test(name: String)
+      """
+        fake[Test]()
+      """ mustNot compile
+    }
+    "option" in {
       case class Test(name: Option[String])
       val t = fake[Test]()
     }
+    "var" in {
+      case class Test(var name: Option[String])
+      val t = fake[Test](_.name -> Some("testVar"))
+      t.name must be (Some("testVar"))
+    }
+  }
+  "next" - {
+    "next String" in {
+      val str = next[String]
+      str must not be ""
+    }
+    "next Int" in {
+      val i = next[Int]
+      i must not be 0
+    }
+    "next Name" in {
+      val name = new Faker[String] {
+        val names = Array("Peter", "Paul", "Newman", "Amigo")
+        override def getNext: String = "name" + names(Random.nextInt(names.length)) + " " + names(Random.nextInt(names.length))
+      }
+      val nextName = next(name)
+      nextName must startWith("name")
+    }
+
+
   }
 }
 

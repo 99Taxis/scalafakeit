@@ -28,7 +28,7 @@ object FakerMacro {
                | Implicit for type ${fakerTypeTag.tpe.toString} missing. You should import an implicit for
                | type ${fakerTypeTag.tpe.toString} or override it with fake[$t](_.$name -> <your code>)
               """)
-            case faker => q"$faker.next"
+            case faker => q"$faker.getNext"
           }
         }
         overrideFakers.getOrElse(name.asInstanceOf[c.TermName], getImplicitFakerForType)
@@ -40,15 +40,19 @@ object FakerMacro {
   private def fakerType[T](c: blackbox.Context)(implicit t: c.WeakTypeTag[T]) = c.weakTypeTag[Faker[T]]
 
   private def getCaseClassTermName(c:blackbox.Context)(t:c.Type) = {
-    val caseClass = t.asInstanceOf[c.universe.TypeRef].sym.asClass
-    caseClass.name.toTermName
+    if(!t.typeSymbol.isClass || !t.typeSymbol.asClass.isCaseClass) {
+      c.abort(c.enclosingPosition, s"${t.typeSymbol.fullName} must be a case class")
+    } else {
+      val caseClass = t.asInstanceOf[c.universe.TypeRef].sym.asClass
+      caseClass.name.toTermName
+    }
   }
 
   private def getFields(c: blackbox.Context)(tpe: c.Type) = {
     import c.universe._
     object CaseField {
       def unapply(termSymbol: c.universe.TermSymbol): Option[(c.universe.TermName, c.Type)] = {
-        if(termSymbol.isVal && termSymbol.isCaseAccessor) {
+        if((termSymbol.isVal || termSymbol.isVar)  && termSymbol.isCaseAccessor) {
           Some((TermName(termSymbol.name.toString.trim), termSymbol.typeSignature))
         } else {
           None

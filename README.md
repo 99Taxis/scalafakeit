@@ -1,6 +1,8 @@
 # Scala FakeIt
 Scala FakeIt is a library for generating test data without boilerplate code.
 
+_WARNING: THIS IS A PREVIEW VERSION_
+
 Quite simple to use:
 
 ```scala

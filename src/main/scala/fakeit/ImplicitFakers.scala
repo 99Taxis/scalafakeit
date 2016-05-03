@@ -1,8 +1,9 @@
 package fakeit
 
-import java.time.{LocalDateTime, OffsetDateTime, ZoneId, ZonedDateTime}
+import java.time.{ LocalDateTime, OffsetDateTime, ZoneId, ZonedDateTime }
 import java.util.Date
 
+import scala.collection.Iterable
 import scala.util.Random
 
 object ImplicitFakers {
@@ -14,6 +15,18 @@ object ImplicitFakers {
       } else {
         None
       }
+  }
+
+  implicit def iterableFaker[T](implicit nonOptionFaker: Faker[T]) = new Faker[Iterable[T]] {
+    override def getNext = (0 to Random.nextInt(100)).map(_ => nonOptionFaker.getNext)
+  }
+
+  implicit def listFaker[T](implicit nonOptionFaker: Faker[T]) = new Faker[List[T]] {
+    override def getNext = (0 to Random.nextInt(100)).map(_ => nonOptionFaker.getNext).toList
+  }
+
+  implicit def seqFaker[T](implicit nonOptionFaker: Faker[T]) = new Faker[Seq[T]] {
+    override def getNext = listFaker.getNext
   }
 
   implicit val intFaker: Faker[Int] =  new Faker[Int] {

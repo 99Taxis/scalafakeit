@@ -13,7 +13,7 @@ object FakerMacro {
     val overrideFakers = args.map {
       case q"(($i1) => scala.this.Predef.ArrowAssoc[$t]($i2.${prop: c.TermName}).$arrow[$v]($value))"
         if i1.symbol == i2.symbol => (prop.asInstanceOf[c.TermName], value)
-      case t @ _ => c.abort(c.enclosingPosition, s"'$t' should be in the form of _.prop -> value")
+      case t => c.abort(c.enclosingPosition, s"'$t' should be in the form of _.prop -> value")
     }.toMap
 
     val fields = getFields(c)(t)

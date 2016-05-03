@@ -1,9 +1,10 @@
 # Scala FakeIt
+
 Scala FakeIt is a library for generating test data without boilerplate code.
 
 _WARNING: THIS IS A PREVIEW VERSION_
 
-Quite simple to use:
+Simple to use:
 
 ```scala
 import fakeit._
@@ -23,6 +24,13 @@ case class Person(name: String, age: Int)
 
 val fakedPerson = fake[Person](_.name -> ("fakedName" + next[String]))
 ```
+
+## Adding to your project
+
+Add dependency and repository by adding to your `build.sbt`.
+
+    libraryDependencies += "scalafakeit" %% "scalafakeit" % "0.0.1"
+    resolvers += "gustavoamigo" at "http://dl.bintray.com/content/gustavoamigo/maven"
 
 ## License
 

@@ -1,7 +1,7 @@
 import sbt.Keys._
 
 name := "scalafakeit"
-organization := "io.scalafakeit"
+organization := "scalafakeit"
 
 version := "0.0.1"
 

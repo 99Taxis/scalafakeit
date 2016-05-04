@@ -31,6 +31,14 @@ Add dependency and repository by adding to your `build.sbt`.
 
     libraryDependencies += "scalafakeit" %% "scalafakeit" % "0.0.1"
     resolvers += "gustavoamigo" at "http://dl.bintray.com/content/gustavoamigo/maven"
+    
+## Development
+
+If you're using [Docker](https://www.docker.com/), you can run:
+
+```shell
+$ docker-compose run --rm sbt
+```
 
 ## License
 

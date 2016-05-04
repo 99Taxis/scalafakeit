@@ -1,0 +1,6 @@
+sbt:
+  build: .
+  dockerfile: ./build/Dockerfile-sbt
+  command: sbt
+  volumes:
+    - ./:/app

@@ -4,8 +4,6 @@ import java.time.{ LocalDateTime, OffsetDateTime, ZonedDateTime }
 import java.util.Date
 
 import scala.util.Random
-
-import fakeit.ImplicitFakers._
 import org.scalatest._
 
 class FakeItSpec extends FreeSpec with MustMatchers {
@@ -160,12 +158,12 @@ class FakeItSpec extends FreeSpec with MustMatchers {
       verifyRandom(() => next[Date].hashCode)
     }
 
-    "explicit faker" in {
-      val name = new Faker[String] {
+    "override default faker" in {
+      implicit val name = new Faker[String] {
         val names = Array("Peter", "Paul", "Newman", "Amigo")
         override def getNext: String = "name" + names(Random.nextInt(names.length)) + " " + names(Random.nextInt(names.length))
       }
-      val nextName = next(name)
+      val nextName = next[String]
       nextName must startWith("name")
     }
 

@@ -6,6 +6,8 @@ import java.util.Date
 import scala.util.Random
 import org.scalatest._
 
+case class TestWithDefaults(name: String, withDefault: StringBuilder = new StringBuilder("withDefault"))
+
 class FakeItSpec extends FreeSpec with MustMatchers {
 
   case class Person(name: String, age:Int)
@@ -79,6 +81,11 @@ class FakeItSpec extends FreeSpec with MustMatchers {
       }
       val parent = fake[Parent]()
       parent must not be ""
+    }
+
+    "case class with default value should compile" in {
+      val t = fake[TestWithDefaults]()
+      t.withDefault.toString() must be ("withDefault")
     }
 
     "non case class should not compile" in {
@@ -166,8 +173,6 @@ class FakeItSpec extends FreeSpec with MustMatchers {
       val nextName = next[String]
       nextName must startWith("name")
     }
-
-
   }
 
   def verifyRandom(f: () => Int) = {

@@ -1,13 +1,15 @@
 package fakeit
 
-import scala.language.experimental.macros
+import scala.collection.immutable.ListMap
 import scala.reflect.macros.blackbox
 
 object FakerMacro {
 
   def fake[T:c.WeakTypeTag](c: blackbox.Context)(args: c.Tree*) = {
     import c.universe._
-    val t = implicitly[WeakTypeTag[T]].tpe
+    val t = c.weakTypeOf[T]
+    val fields = getFields(c)(t)
+    val defaults = getFieldsDefaultValues(c)(t)
     val caseClassName = getCaseClassTermName(c)(t)
 
     val overrideFakers = args.map {
@@ -16,22 +18,23 @@ object FakerMacro {
       case t => c.abort(c.enclosingPosition, s"'$t' should be in the form of _.prop -> value")
     }.toMap
 
-    val fields = getFields(c)(t)
     val fakedProps = fields.map {
       case (name, fieldTpe: c.Type) =>
+        val fakerTypeTag = fakerType(c)(c.WeakTypeTag(fieldTpe))
         lazy val getImplicitFakerForType = {
-          val fakerTypeTag = fakerType(c)(c.WeakTypeTag(fieldTpe))
           val fakerOpt = c.inferImplicitValue(fakerTypeTag.tpe.asInstanceOf[c.Type])
           fakerOpt match {
-            case EmptyTree => c.abort(c.enclosingPosition,
-              s"""
-               | Implicit for type ${fakerTypeTag.tpe.toString} missing. You should import an implicit for
-               | type ${fakerTypeTag.tpe.toString} or override it with fake[$t](_.$name -> <your code>)
-              """)
-            case faker => q"$faker.getNext"
+            case EmptyTree => None
+            case faker => Some(q"$faker.getNext")
           }
         }
-        overrideFakers.getOrElse(name.asInstanceOf[c.TermName], getImplicitFakerForType)
+        overrideFakers.get(name.asInstanceOf[c.TermName]).orElse(getImplicitFakerForType).orElse(defaults.getOrElse(name.asInstanceOf[c.TermName], None)).getOrElse{
+          c.abort(c.enclosingPosition,
+            s"""
+               | Implicit for value ${fakerTypeTag.tpe.toString} missing. You should import an implicit for
+               | type ${fakerTypeTag.tpe.toString} or override it with fake[$t](_.$name -> <your code>)
+              """)
+        }
     }
 
     q"$caseClassName(..$fakedProps)"
@@ -62,6 +65,27 @@ object FakerMacro {
     tpe.decls.collect {
       case CaseField(termName,fieldTpe) =>
         (termName, fieldTpe)
+    }
+  }
+
+  private def getFieldsDefaultValues(c: blackbox.Context)( tpe: c.Type ): ListMap[c.universe.TermName, Option[c.universe.Tree]] = {
+    import c.universe._
+    if(tpe.companion == NoType){
+      ListMap()
+    } else {
+      ListMap( tpe.companion.member(TermName( "apply" )).asTerm.alternatives.find(_.isSynthetic).get.asMethod.paramLists.flatten.zipWithIndex.map {
+        case ( field, i ) =>
+          (
+            field.name.toTermName,
+            {
+              val method = TermName( s"apply$$default$$${i + 1}" )
+              tpe.companion.member( method ) match {
+                case NoSymbol => None
+                case _        => Some( q"${tpe.typeSymbol.companion}.$method" )
+              }
+            }
+            )
+      }: _*)
     }
   }
 }

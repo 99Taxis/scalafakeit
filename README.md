@@ -8,7 +8,6 @@ Simple to use:
 
 ```scala
 import fakeit._
-import fakeit.ImplicitFakers._
 
 case class Person(name: String, age: Int)
 
@@ -18,7 +17,6 @@ val fakedPerson = fake[Person]()
 Also, you can override some properties with your own random generator.
 ```scala
 import fakeit._
-import fakeit.ImplicitFakers._
 
 case class Person(name: String, age: Int)
 
@@ -29,7 +27,7 @@ val fakedPerson = fake[Person](_.name -> ("fakedName" + next[String]))
 
 Add dependency and repository by adding to your `build.sbt`.
 
-    libraryDependencies += "scalafakeit" %% "scalafakeit" % "0.0.1"
+    libraryDependencies += "scalafakeit" %% "scalafakeit" % "0.0.2"
     resolvers += "gustavoamigo" at "http://dl.bintray.com/content/gustavoamigo/maven"
     
 ## Development

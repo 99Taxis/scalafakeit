@@ -3,7 +3,7 @@ import sbt.Keys._
 name := "scalafakeit"
 organization := "scalafakeit"
 
-version := "0.0.3-SNAPSHOT"
+version := "0.0.2.1"
 
 scalaVersion := "2.11.8"
 

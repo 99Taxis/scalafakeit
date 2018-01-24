@@ -37,7 +37,7 @@ object Faker {
   }
 
   implicit val stringFaker: Faker[String] =  new Faker[String] {
-    override def getNext = (1 to 10).map(_ => Random.nextPrintableChar()).mkString
+    override def getNext = (1 to 40).map(_ => Random.nextPrintableChar()).mkString.filter(_.isLetterOrDigit).take(10)
   }
 
   implicit val bigDecimalFaker: Faker[BigDecimal] = new Faker[BigDecimal] {
